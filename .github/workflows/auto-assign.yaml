@@ -1,0 +1,24 @@
+name: Auto Assign PR
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign-author:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Check for Existing Assignees
+        id: assignees
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          assignee_count="$(gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --json assignees --jq '.assignees | length')"
+          echo "assigned=$([[ "$assignee_count" -gt 0 ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Assign Author
+        if: steps.assignees.outputs.assigned != 'true'
+        uses: toshimaru/auto-author-assign@v3
